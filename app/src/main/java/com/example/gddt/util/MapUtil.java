@@ -2,7 +2,7 @@ package com.example.gddt.util;
 
 import com.amap.api.maps.model.LatLng;
 import com.amap.api.services.core.LatLonPoint;
-import com.llw.mapdemo.R;
+import com.example.gddt.R;
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;
