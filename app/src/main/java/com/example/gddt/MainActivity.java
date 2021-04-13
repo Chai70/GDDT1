@@ -238,7 +238,7 @@ AMap.OnInfoWindowClickListener{
                 imm.hideSoftInputFromWindow(getWindow().getDecorView().getWindowToken(), 0);
 
                 // name表示地址，第二个参数表示查询城市，中文或者中文全拼，citycode、adcode
-                GeocodeQuery query = new GeocodeQuery(address,"深圳");
+                GeocodeQuery query = new GeocodeQuery(address,"大理");
                 geocodeSearch.getFromLocationNameAsyn(query);
             }
             return true;
