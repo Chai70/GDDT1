@@ -19,24 +19,21 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".RouteActivity"></activity>
+        <activity android:name=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity android:name=".RouteActivity" />
         <activity
             android:name=".RouteDetailActivity"
-            android:theme="@style/DetailTheme" />
-        <!-- 定位service -->
+            android:theme="@style/DetailTheme" /> <!-- 定位service -->
         <service android:name="com.amap.api.location.APSService" /> <!-- 设置高德Key -->
         <meta-data
             android:name="com.amap.api.v2.apikey"
             android:value="c86ca9293b4e2ecfc0ff7acd5f386a1b" />
-
-        <activity android:name=".MainActivity" >
-        <intent-filter>
-            <action android:name="android.intent.action.MAIN" />
-
-            <category android:name="android.intent.category.LAUNCHER" />
-        </intent-filter>
-        </activity>
-
     </application>
 
 </manifest>
