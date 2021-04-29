@@ -17,6 +17,7 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.view.animation.LinearInterpolator;
 import android.view.inputmethod.InputMethodManager;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -84,7 +85,6 @@ public class MainActivity extends AppCompatActivity implements
     public AMapLocationClient mLocationClient = null;
     //声明AMapLocationClientOption对象
     public AMapLocationClientOption mLocationOption = null;
-    private AMapLocation privLocation;
 
     private MapView mapView;
 
@@ -121,7 +121,10 @@ public class MainActivity extends AppCompatActivity implements
     //标点列表
     private List<Marker> markerList = new ArrayList<>();
 
-    private double distance;
+    private int index = 0;
+
+    private boolean isFirst = true;
+
 
 
 
@@ -151,6 +154,7 @@ public class MainActivity extends AppCompatActivity implements
      * 初始化定位
      */
     private void initLocation() {
+
         //初始化定位
         mLocationClient = new AMapLocationClient(getApplicationContext());
         //设置定位回调监听
@@ -159,9 +163,12 @@ public class MainActivity extends AppCompatActivity implements
         mLocationOption = new AMapLocationClientOption();
         //设置定位模式为AMapLocationMode.Hight_Accuracy，高精度模式。
         mLocationOption.setLocationMode(AMapLocationClientOption.AMapLocationMode.Hight_Accuracy);
-        //获取最近3s内精度最高的一次定位结果：
-        //设置setOnceLocationLatest(boolean b)接口为true，启动定位时SDK会返回最近3s内精度最高的一次定位结果。如果设置其为true，setOnceLocation(boolean b)接口也会被设置为true，反之不会，默认为false。
-        mLocationOption.setOnceLocationLatest(true);
+
+        //设置是否只定位一次,默认为false
+        mLocationOption.setOnceLocation(false);
+        //自定义连续定位
+        mLocationOption.setInterval(1000);
+
         //设置是否返回地址信息（默认返回地址信息）
         mLocationOption.setNeedAddress(true);
         //设置定位请求超时时间，单位是毫秒，默认30000毫秒，建议超时时间不要低于8000毫秒。
@@ -170,6 +177,7 @@ public class MainActivity extends AppCompatActivity implements
         mLocationOption.setLocationCacheEnable(false);
         //给定位客户端对象设置定位参数
         mLocationClient.setLocationOption(mLocationOption);
+        mLocationClient.startLocation();//启动定位
     }
 
     /**
@@ -188,14 +196,12 @@ public class MainActivity extends AppCompatActivity implements
         aMap.setMinZoomLevel(16);
         //开启室内地图
         aMap.showIndoorMap(true);
-
         //实例化UiSettings类对象
         mUiSettings = aMap.getUiSettings();
         //隐藏缩放按钮 默认显示
         mUiSettings.setZoomControlsEnabled(false);
         //显示比例尺 默认不显示
         mUiSettings.setScaleControlsEnabled(true);
-
         // 自定义定位蓝点图标
         myLocationStyle.myLocationIcon(BitmapDescriptorFactory.fromResource(R.drawable.gps_point));
         // 自定义精度范围的圆形边框颜色  都为0则透明
@@ -204,31 +210,24 @@ public class MainActivity extends AppCompatActivity implements
         myLocationStyle.strokeWidth(0);
         // 设置圆形的填充颜色  都为0则透明
         myLocationStyle.radiusFillColor(Color.argb(0, 0, 0, 0));
-
         //设置定位蓝点的Style
         aMap.setMyLocationStyle(myLocationStyle);
-
         // 设置定位监听
         aMap.setLocationSource(this);
         // 设置为true表示显示定位层并可触发定位，false表示隐藏定位层并不可触发定位，默认是false
         aMap.setMyLocationEnabled(true);
-
         //设置地图点击事件
         aMap.setOnMapClickListener(this);
         //设置地图长按事件
         aMap.setOnMapLongClickListener(this);
         //设置地图Marker点击事件
         aMap.setOnMarkerClickListener(this);
-
         //设置地图Marker拖拽事件
         aMap.setOnMarkerDragListener(this);
-
         //设置InfoWindowAdapter监听
         aMap.setInfoWindowAdapter(this);
-
         //设置InfoWindow点击事件
         aMap.setOnInfoWindowClickListener(this);
-
         //构造 GeocodeSearch 对象
         geocodeSearch = new GeocodeSearch(this);
         //设置监听
@@ -305,6 +304,7 @@ public class MainActivity extends AppCompatActivity implements
     public void onLocationChanged(AMapLocation aMapLocation) {
         if (aMapLocation != null) {
             if (aMapLocation.getErrorCode() == 0) {
+                mListener.onLocationChanged(aMapLocation);
                 //地址
                 String address = aMapLocation.getAddress();
                 //获取纬度
@@ -312,28 +312,11 @@ public class MainActivity extends AppCompatActivity implements
                 //获取经度
                 double longitude = aMapLocation.getLongitude();
 
+                showMsg("经度："+latitude+",纬度："+longitude);
+
+
                 Log.d("MainActivity", aMapLocation.getCity());
                 showMsg(address);
-
-                aMapLocation.getAccuracy();//获取精度信息
-                aMapLocation.getBearing();//获取方向角信息
-                aMapLocation.getSpeed();//获取速度信息  单位：米/秒
-                aMapLocation.getLocationType();//查看是什么类型的点
-                Log.e(TAG, "获取点的类型" + aMapLocation.getLocationType());
-                if (aMapLocation.getLocationType() == 1) {
-
-                    drawLines(aMapLocation);//一边定位一边连线
-                    distance += distance;
-                    Log.e("DDDDDDDDD", String.valueOf(distance));
-                    Log.e(TAG, "获取点的类型" + aMapLocation.getLocationType());
-                    Log.e("LLLLL", String.valueOf(latitude));
-                    Log.e("LLLLLLLL", String.valueOf(longitude));
-                }
-                //获取定位时间
-                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                Date date = new Date(aMapLocation.getTime());
-                sdf.format(date);
-                privLocation = aMapLocation;
 
                 //停止定位后，本地定位服务并不会被销毁
                 mLocationClient.stopLocation();
@@ -355,7 +338,7 @@ public class MainActivity extends AppCompatActivity implements
                         + aMapLocation.getErrorInfo());
             }
         }
-    }
+        }
 
     /**
      * 激活定位
@@ -364,6 +347,19 @@ public class MainActivity extends AppCompatActivity implements
     public void activate(OnLocationChangedListener onLocationChangedListener) {
         mListener = onLocationChangedListener;
         if (mLocationClient == null) {
+            mLocationClient = new AMapLocationClient(this);
+            //初始化定位参数
+            mLocationOption = new AMapLocationClientOption();
+            //设置定位回调监听
+            mLocationClient.setLocationListener(this);
+            //设置为高精度定位模式
+            mLocationOption.setLocationMode(AMapLocationClientOption.AMapLocationMode.Hight_Accuracy);
+            //设置定位间隔,单位毫秒,默认为2000ms
+            mLocationOption.setInterval(2000);
+            //设置是否返回地址信息（默认返回地址信息）
+            mLocationOption.setNeedAddress(true);
+            //设置定位参数
+            mLocationClient.setLocationOption(mLocationOption);
             mLocationClient.startLocation();//启动定位
         }
     }
@@ -470,6 +466,7 @@ public class MainActivity extends AppCompatActivity implements
     public void onMapClick(LatLng latLng) {
         //通过经纬度获取地址
         //latlonToAddress(latLng);
+
         //添加标点
         addMarker(latLng);
         //改变地图中心点
@@ -494,29 +491,8 @@ public class MainActivity extends AppCompatActivity implements
         aMap.animateCamera(cameraUpdate);
 
     }
-    /**
-     * 绘制运动路线
-     *
-     * @param curLocation
-     */
-    public void drawLines(AMapLocation curLocation) {
 
-        if (null == privLocation) {
-            return;
-        }
-        PolylineOptions options = new PolylineOptions();
-        //上一个点的经纬度
-        options.add(new LatLng(privLocation.getLatitude(), privLocation.getLongitude()));
-        //当前的经纬度
-        options.add(new LatLng(curLocation.getLatitude(), curLocation.getLongitude()));
-        options.width(10).geodesic(true).color(Color.GREEN);
-        aMap.addPolyline(options);
-        //距离的计算
-        distance = AMapUtils.calculateLineDistance(new LatLng(privLocation.getLatitude(),
-                privLocation.getLongitude()), new LatLng(curLocation.getLatitude(),
-                curLocation.getLongitude()));
 
-    }
 
 
 
@@ -641,7 +617,7 @@ public class MainActivity extends AppCompatActivity implements
                 imm.hideSoftInputFromWindow(getWindow().getDecorView().getWindowToken(), 0);
 
                 // name表示地址，第二个参数表示查询城市，中文或者中文全拼，citycode、adcode
-                GeocodeQuery query = new GeocodeQuery(address, "深圳");
+                GeocodeQuery query = new GeocodeQuery(address, "大理");
                 geocodeSearch.getFromLocationNameAsyn(query);
             }
             return true;
